@@ -12,10 +12,10 @@ public class CustomerTest {
 
     @Test
     void creation() {
-        Customer customer = new Customer("bob", "bob@bob.com", new ArrayList<>());
+        Customer customer = new Customer("test", "test@test.com", new ArrayList<>());
 
-        assertEquals("bob", customer.getName());
-        assertEquals("bob@bob.com", customer.getEmail());
+        assertEquals("test", customer.getName());
+        assertEquals("test@test.com", customer.getEmail());
         assertEquals(Collections.emptyList(), customer.getCoupons());
     }
 

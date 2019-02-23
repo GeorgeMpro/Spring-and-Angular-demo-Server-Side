@@ -1,5 +1,8 @@
 package george.fullstack.demo.springandangular.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,7 +16,6 @@ public class Coupon {
     @Column(name = "id", length = 45)
     private long id;
 
-
     @Column(name = "name", unique = true, nullable = false, length = 45)
     private String name;
 
@@ -23,6 +25,9 @@ public class Coupon {
     @Column(name = "imageLocation")
     private String imageLocation;
 
+    @Column(name = "amount")
+    private long amount;
+
     @Column(name = "startDate", length = 45)
     private LocalDate startDate;
 
@@ -31,6 +36,7 @@ public class Coupon {
 
     @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "company_id")
+    @JsonBackReference
     private Company company;
 
     @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
@@ -39,6 +45,7 @@ public class Coupon {
             joinColumns = @JoinColumn(name = "coupon_id"),
             inverseJoinColumns = @JoinColumn(name = "customer_id")
     )
+    @JsonIgnore
     private List<Customer> customers;
 
     public List<Customer> getCustomers() {
@@ -52,10 +59,11 @@ public class Coupon {
     public Coupon() {
     }
 
-    public Coupon(String name, String description, String imageLocation, LocalDate startDate, LocalDate endDate, Company company, List<Customer> customers) {
+    public Coupon(String name, String description, String imageLocation, long amount, LocalDate startDate, LocalDate endDate, Company company, List<Customer> customers) {
         this.name = name;
         this.description = description;
         this.imageLocation = imageLocation;
+        this.amount = amount;
         this.startDate = startDate;
         this.endDate = endDate;
         this.company = company;
@@ -68,6 +76,14 @@ public class Coupon {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
+    public void setAmount(long amount) {
+        this.amount = amount;
     }
 
     public String getName() {
@@ -125,11 +141,11 @@ public class Coupon {
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", imageLocation='" + imageLocation + '\'' +
+                ", amount=" + amount +
                 ", startDate=" + startDate +
                 ", endDate=" + endDate +
                 '}';
     }
-
 
     /**
      * Convenience method for adding customer to customer list.<br>

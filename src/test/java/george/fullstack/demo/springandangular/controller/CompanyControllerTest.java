@@ -5,6 +5,7 @@ import george.fullstack.demo.springandangular.dao.CompanyRepository;
 import george.fullstack.demo.springandangular.entity.Company;
 import george.fullstack.demo.springandangular.service.CompanyService;
 import george.fullstack.demo.springandangular.service.CompanyServiceImpl;
+import george.fullstack.demo.springandangular.testhelper.CompanyTestHelper;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +32,8 @@ public class CompanyControllerTest {
     private Company testCompany2;
     private long testId;
 
+    private CompanyTestHelper helper;
+
     @Autowired
     private CompanyService service;
 
@@ -43,9 +45,10 @@ public class CompanyControllerTest {
 
     @BeforeEach
     void setUp() {
+        helper = new CompanyTestHelper();
         repository.deleteAllInBatch();
-        testCompany1 = service.createCompany(createTestCompany(testName1, testEmail1));
-        testCompany2 = service.createCompany(createTestCompany(testName2, testEmail2));
+        testCompany1 = service.createCompany(helper.createSimpleCompany(testName1, testEmail1));
+        testCompany2 = service.createCompany(helper.createSimpleCompany(testName2, testEmail2));
         testId = testCompany1.getId();
     }
 
@@ -62,7 +65,7 @@ public class CompanyControllerTest {
     void getByName() {
         Company fromController = controller.getCompanyByName(testName1);
 
-        assertSameCompanyValues(testCompany1, fromController);
+        helper.assertEqualCompanyValues(testCompany1, fromController);
     }
 
     @ParameterizedTest
@@ -75,7 +78,7 @@ public class CompanyControllerTest {
     void getById() {
         Company returned = controller.getCompanyById(String.valueOf(testId));
 
-        assertSameCompanyValues(testCompany1, returned);
+        helper.assertEqualCompanyValues(testCompany1, returned);
     }
 
     @ParameterizedTest
@@ -89,21 +92,21 @@ public class CompanyControllerTest {
     void create() {
         String name = "single create";
         String email = "single@mail";
-        Company created = controller.createCompany(createTestCompany(name, email));
+        Company created = controller.createCompany(helper.createSimpleCompany(name, email));
         Company fromServ = service.findByName(name);
 
-        assertSameCompanyValues(fromServ, created);
+        helper.assertEqualCompanyValues(fromServ, created);
     }
 
     @Test
     void whenCreateDuplicateName_thenThrowException() {
-        Company duplicateName = createTestCompany(testName1, "not@duplicate");
+        Company duplicateName = helper.createSimpleCompany(testName1, "not@duplicate");
         testDuplicateCreation(duplicateName);
     }
 
     @Test
     void whenCreateDuplicateEmail_thenThrowException() {
-        Company duplicateEmail = createTestCompany("not duplicate", testEmail1);
+        Company duplicateEmail = helper.createSimpleCompany("not duplicate", testEmail1);
         testDuplicateCreation(duplicateEmail);
     }
 
@@ -114,7 +117,7 @@ public class CompanyControllerTest {
         controller.updateCompany(testCompany1);
         Company updated = controller.getCompanyById(String.valueOf(testId));
 
-        assertSameCompanyValues(testCompany1, updated);
+        helper.assertEqualCompanyValues(testCompany1, updated);
     }
 
     @ParameterizedTest
@@ -150,19 +153,6 @@ public class CompanyControllerTest {
     @ValueSource(longs = {-1, 0, 9999})
     void whenCannotFindCompanyToDelete_thenThrowException(long id) {
         assertThrows(CompanyServiceImpl.NoSuchCompany.class, () -> controller.deleteCompanyById(String.valueOf(id)));
-    }
-
-    private Company createTestCompany(String name, String email) {
-        return new Company(name, email, "1234", new ArrayList<>());
-    }
-
-    private void assertSameCompanyValues(Company expected, Company actual) {
-        assertNotNull(expected);
-        assertTrue(expected.getId() > 0);
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getEmail(), actual.getEmail());
-        assertEquals(expected.getPassword(), actual.getPassword());
-        assertIterableEquals(expected.getCoupons(), actual.getCoupons());
     }
 
     //    todo(?) update with lambda

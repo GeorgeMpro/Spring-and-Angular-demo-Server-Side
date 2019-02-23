@@ -1,11 +1,12 @@
 package george.fullstack.demo.springandangular.service;
 
-import edu.emory.mathcs.backport.java.util.Collections;
 import george.fullstack.demo.springandangular.SpringAndAngularApplication;
 import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.dao.CustomerRepository;
 import george.fullstack.demo.springandangular.entity.Coupon;
 import george.fullstack.demo.springandangular.entity.Customer;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
+import george.fullstack.demo.springandangular.testhelper.CustomerTestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,11 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @SpringBootTest(classes = SpringAndAngularApplication.class)
@@ -29,6 +29,10 @@ public class CustomerServiceJoinTableIT {
     private String testName = "test1";
     private String testEmail = "test1@mail.com";
     private Customer testCustomer;
+
+
+    private CustomerTestHelper helper;
+    private CouponTestHelper couponHelper;
 
     @Autowired
     private CustomerRepository repository;
@@ -41,6 +45,8 @@ public class CustomerServiceJoinTableIT {
 
     @BeforeEach
     void setUp() {
+        helper = new CustomerTestHelper();
+        couponHelper = new CouponTestHelper();
         repository.deleteAllInBatch();
         couponRepository.deleteAllInBatch();
         testCustomer = returnSetupCustomer();
@@ -54,18 +60,10 @@ public class CustomerServiceJoinTableIT {
     // todo (?)create spy methods to see that the repo is being called when needed
     @Test
     void getCustomersCoupons() {
-        List<Coupon> returnedCoupons = customerService.getCouponsOwnedByThisCustomer(testCustomer);
-        List<Coupon> testCoupons = testCustomer.getCoupons();
+        List<Coupon> actual = customerService.getCouponsOwnedByThisCustomer(testCustomer);
+        List<Coupon> expected = testCustomer.getCoupons();
 
-        assertNotNull(returnedCoupons);
-        assertNotEquals(Collections.emptyList(), returnedCoupons);
-        assertAll("coupon lists"
-                , () -> {
-                    assertEquals(testCoupons.size(), returnedCoupons.size());
-                    for (int i = 0; i < testCoupons.size(); i++) {
-                        assertSameCouponValues(testCoupons.get(i), returnedCoupons.get(i));
-                    }
-                });
+        couponHelper.assertSameCouponListValues(expected, actual);
     }
 
     @ParameterizedTest
@@ -78,35 +76,21 @@ public class CustomerServiceJoinTableIT {
     }
 
     private Customer returnSetupCustomer() {
-        Customer customer = createTestCustomer();
+        Customer customer = helper.createSimpleCustomer(testName, testEmail);
+
+        addCouponsToCustomer(customer);
+
         return repository.saveAndFlush(customer);
     }
 
-    private Customer createTestCustomer() {
-        Customer customer = new Customer();
-        customer.setName(testName);
-        customer.setEmail(testEmail);
-        Coupon coupon = createTestCoupon(testName, "description1", "location1");
-        Coupon coupon2 = createTestCoupon("test2", "description2", "location2");
+    private Customer addCouponsToCustomer(Customer customer) {
+
+        Coupon coupon = couponHelper.createSimpleCoupon(testName);
+        Coupon coupon2 = couponHelper.createSimpleCoupon("test2");
+
         customer.addCoupon(coupon);
         customer.addCoupon(coupon2);
 
         return customer;
-    }
-
-    private Coupon createTestCoupon(String name, String description, String location) {
-        return new Coupon(name, description, location, LocalDate.now(), LocalDate.now(), null, new ArrayList<>());
-    }
-
-    private void assertSameCouponValues(Coupon expected, Coupon actual) {
-        assertNotNull(expected);
-        assertTrue(expected.getId() > 0);
-        assertEquals(expected.getId(), actual.getId());
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getDescription(), actual.getDescription());
-        assertEquals(expected.getImageLocation(), actual.getImageLocation());
-        assertEquals(expected.getStartDate(), actual.getStartDate());
-        assertEquals(expected.getEndDate(), actual.getEndDate());
-        assertEquals(expected.getCompany(), actual.getCompany());
     }
 }

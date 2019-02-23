@@ -5,6 +5,7 @@ import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.entity.Coupon;
 import george.fullstack.demo.springandangular.service.CouponService;
 import george.fullstack.demo.springandangular.service.CouponServiceImpl;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +16,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,9 +24,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 public class CouponControllerTest {
 
-
     private final String testName = "test1";
     private Coupon testCoupon;
+
+    private CouponTestHelper helper;
 
     @Autowired
     private CouponService service;
@@ -40,14 +41,14 @@ public class CouponControllerTest {
 
     @BeforeEach
     void setUp() {
+        helper = new CouponTestHelper();
         repository.deleteAllInBatch();
-        testCoupon = service.createCoupon(createTestCoupon(testName));
+        testCoupon = service.createCoupon(helper.createSimpleCoupon(testName));
         testId = testCoupon.getId();
     }
 
     @Test
     void getAllCoupons() {
-
         List<Coupon> coupons = controller.getAllCoupons();
 
         assertNotNull(coupons);
@@ -58,9 +59,9 @@ public class CouponControllerTest {
     @Test
     void getCouponByName() {
 
-        Coupon returned = controller.getCouponByName(testName);
+        Coupon actual = controller.getCouponByName(testName);
 
-        assertSameCouponValues(testCoupon, returned);
+        helper.assertSameCouponValues(testCoupon, actual);
     }
 
     @Test
@@ -73,12 +74,10 @@ public class CouponControllerTest {
 
     @Test
     void getCouponById() {
-
         long id = testCoupon.getId();
+        Coupon actual = controller.getCouponById(String.valueOf(id));
 
-        Coupon returned = controller.getCouponById(String.valueOf(id));
-
-        assertSameCouponValues(testCoupon, returned);
+        helper.assertSameCouponValues(testCoupon, actual);
     }
 
     @ParameterizedTest
@@ -93,16 +92,16 @@ public class CouponControllerTest {
     @Test
     void createCoupon() {
         String name = "create1";
-        Coupon created = controller.createCoupon(createTestCoupon(name));
-        Coupon fromServ = service.findByName(name);
+        Coupon actual = controller.createCoupon(helper.createSimpleCoupon(name));
+        Coupon expected = service.findByName(name);
 
-        assertSameCouponValues(fromServ, created);
+        helper.assertSameCouponValues(expected, actual);
     }
 
     @Test
     void whenCreateDuplicateName_thenThrowException() {
         assertThrows(CouponServiceImpl.CouponAlreadyExist.class, () -> {
-            Coupon duplicate = createTestCoupon(testName);
+            Coupon duplicate = helper.createSimpleCoupon(testName);
             controller.createCoupon(duplicate);
         });
     }
@@ -116,13 +115,13 @@ public class CouponControllerTest {
         controller.updateCoupon(testCoupon);
         Coupon updated = controller.getCouponById(String.valueOf(testId));
 
-        assertSameCouponValues(testCoupon, updated);
+        helper.assertSameCouponValues(testCoupon, updated);
     }
 
     @Test
     void whenUpdateDuplicateName_thenThrowException() {
         assertThrows(CouponServiceImpl.CouponAlreadyExist.class, () -> {
-            Coupon hasDuplicateName = controller.createCoupon(createTestCoupon("test2"));
+            Coupon hasDuplicateName = controller.createCoupon(helper.createSimpleCoupon("test2"));
             hasDuplicateName.setName(testName);
             controller.updateCoupon(hasDuplicateName);
         });
@@ -130,7 +129,6 @@ public class CouponControllerTest {
 
     @Test
     void deleteCoupon() {
-
         controller.deleteCouponById(testId);
         assertThrows(CouponServiceImpl.NoSuchCoupon.class, () ->
                 controller.getCouponById(String.valueOf(testId))
@@ -141,21 +139,5 @@ public class CouponControllerTest {
     @ValueSource(longs = {-1, 0, 9999})
     void whenCannotFindCouponToDelete_thenThrowException(long id) {
         assertThrows(CouponServiceImpl.NoSuchCoupon.class, () -> controller.deleteCouponById(id));
-    }
-
-    private Coupon createTestCoupon(String name) {
-        return new Coupon(name, "Test coupon", "url", LocalDate.now(), LocalDate.now(), null, new ArrayList<>());
-    }
-
-    private void assertSameCouponValues(Coupon expected, Coupon actual) {
-        assertNotNull(expected);
-        assertTrue(expected.getId() > 0);
-        assertEquals(expected.getId(), actual.getId());
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getDescription(), actual.getDescription());
-        assertEquals(expected.getImageLocation(), actual.getImageLocation());
-        assertEquals(expected.getStartDate(), actual.getStartDate());
-        assertEquals(expected.getEndDate(), actual.getEndDate());
-        assertEquals(expected.getCompany(), actual.getCompany());
     }
 }

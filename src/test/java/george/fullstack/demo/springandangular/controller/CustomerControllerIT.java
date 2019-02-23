@@ -1,10 +1,9 @@
 package george.fullstack.demo.springandangular.controller;
 
 
-import com.google.gson.Gson;
-import edu.emory.mathcs.backport.java.util.Collections;
 import george.fullstack.demo.springandangular.entity.Customer;
 import george.fullstack.demo.springandangular.service.CustomerServiceImpl;
+import george.fullstack.demo.springandangular.testhelper.CustomerTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +20,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,8 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class CustomerControllerIT {
 
-    //    todo extract/delegate class
-    private Long testId = 1L;
+    //    todo extract/delegate
+    private Long testId = 0L;
     private String testName = "test1";
     private String testEmail = "test1@mail.com";
     private Customer testCustomer;
@@ -55,6 +53,8 @@ public class CustomerControllerIT {
     private ResultMatcher created = status().isCreated();
     private ResultMatcher badRequest = status().isBadRequest();
 
+    private CustomerTestHelper helper;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -63,16 +63,17 @@ public class CustomerControllerIT {
 
     @BeforeEach
     void setUp() {
-        testCustomer = setUpTestCustomer();
-        testCustomerJson = customerToJson(testCustomer);
+        helper = new CustomerTestHelper();
+        testCustomer = helper.createSimpleCustomer(testName, testEmail);
+        testCustomerJson = helper.customerToJson(testCustomer);
     }
 
     @Test
     void getAllCustomers() throws Exception {
 
         List<Customer> customers = Arrays.asList(
-                new Customer(testName, testEmail, null),
-                new Customer("test2", "test2@mail.com", null)
+                helper.createSimpleCustomer(testName, testEmail),
+                helper.createSimpleCustomer("test2", "test2@mail.com")
         );
         when(controller.getAllCustomers()).thenReturn(customers);
         requestBuilder = get(baseUrlPath);
@@ -189,7 +190,7 @@ public class CustomerControllerIT {
 
     }
 
-    //    todo extract/delegate class
+    //    todo(?) extract/delegate class - general mvc helper class
     private ResultActions testResponseStatusWithBodyContent(MockHttpServletRequestBuilder requestBuilder, ResultMatcher expectedHttpStatus) throws Exception {
         return mockMvc.perform(requestBuilder
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
@@ -211,22 +212,6 @@ public class CustomerControllerIT {
         return testResponseStatus(requestBuilder, expectedHttpStatus)
                 .andExpect(jsonPath("$.id", is(testId.intValue())))
                 .andExpect(jsonPath("$.name", is(testName)))
-                .andExpect(jsonPath("$.email", is(testEmail)))
-                .andExpect(jsonPath("$.coupons", is(Collections.emptyList())));
-    }
-
-    private Customer setUpTestCustomer() {
-        Customer c = new Customer();
-        c.setId(testId);
-        c.setName(testName);
-        c.setEmail(testEmail);
-        c.setCoupons(new ArrayList<>());
-
-        return c;
-    }
-
-    private String customerToJson(Customer testCustomer) {
-        Gson gson = new Gson();
-        return gson.toJson(testCustomer, Customer.class);
+                .andExpect(jsonPath("$.email", is(testEmail)));
     }
 }

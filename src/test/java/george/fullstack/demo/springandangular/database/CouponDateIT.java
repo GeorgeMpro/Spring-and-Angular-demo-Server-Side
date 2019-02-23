@@ -1,8 +1,8 @@
 package george.fullstack.demo.springandangular.database;
 
-import edu.emory.mathcs.backport.java.util.Collections;
 import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.entity.Coupon;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,60 +14,61 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 @SpringBootTest
 @TestPropertySource(locations = "classpath:application-mysql-test-connection.properties")
 public class CouponDateIT {
-//    todo(?) change to parameterized tests
+    //    todo(?) change to parameterized tests
+    private final String name = "test1";
+
+    private CouponTestHelper helper;
 
     @Autowired
     private CouponRepository repository;
-    private final String couponName = "test1";
+    private LocalDate now;
 
     @BeforeEach
     void setUp() {
+        helper = new CouponTestHelper();
         repository.deleteAllInBatch();
+        now = LocalDate.now();
     }
 
     @Test
     void returnsDateNow() {
-        LocalDate testDate = LocalDate.now();
+        repository.save(helper.createCouponWithDateValues(name, now, now));
 
-        returnSetupCoupon(testDate);
-
-        Optional<Coupon> optionalCoupon = repository.findByName(couponName);
+        Optional<Coupon> optionalCoupon = repository.findByName(name);
         Coupon returned = optionalCoupon.get();
 
-        assertEquals(testDate, returned.getStartDate());
-        assertEquals(testDate, returned.getEndDate());
+        helper.assertCouponDateValues(now, returned);
     }
+
 
     @Test
     void returnsMadeUpDate() {
-        LocalDate testDate = LocalDate.of(2019, 2, 3);
-        returnSetupCoupon(testDate);
+        LocalDate expected = LocalDate.of(2019, 2, 3);
+        repository.save(helper.createCouponWithDateValues(name, expected, expected));
 
-        Optional<Coupon> optionalCoupon = repository.findByName(couponName);
+        Optional<Coupon> optionalCoupon = repository.findByName(name);
         Coupon returned = optionalCoupon.get();
 
-        assertEquals(testDate, returned.getStartDate());
-        assertEquals(testDate, returned.getEndDate());
+        helper.assertCouponDateValues(expected, returned);
     }
 
     @Test
     void updateDateFields() {
-        LocalDate now = LocalDate.now();
         LocalDate updatedDate = LocalDate.of(2010, 10, 23);
 
-        Coupon coupon = returnSetupCoupon(now);
+        Coupon coupon = repository.save(helper.createCouponWithDateValues(name, now, now));
 
         coupon.setStartDate(updatedDate);
         coupon = repository.saveAndFlush(coupon);
         assertEquals(updatedDate, coupon.getStartDate());
 
-        Optional<Coupon> optionalCoupon = repository.findByName(couponName);
+        Optional<Coupon> optionalCoupon = repository.findByName(name);
         Coupon returned = optionalCoupon.get();
 
         assertEquals(updatedDate, returned.getStartDate());
@@ -75,53 +76,18 @@ public class CouponDateIT {
 
     @Test
     void testCouponListDates() {
-        LocalDate startDate = LocalDate.now();
         LocalDate endDate = LocalDate.of(2050, 3, 15);
-        createCouponList(startDate, endDate);
-        List<Coupon> queryCoupons = repository.findAll();
+        createCouponList(now, endDate);
+        List<Coupon> coupons = repository.findAll();
 
-        assertNotNull(queryCoupons);
-        assertNotEquals(Collections.emptyList(), queryCoupons);
-        assertAll("coupon lists"
-                , () -> {
-                    for (Coupon c : queryCoupons) {
-                        assertEquals(startDate, c.getStartDate());
-                        assertEquals(endDate, c.getEndDate());
-                    }
-                });
-
-
-    }
-
-
-    private Coupon returnSetupCoupon(LocalDate testDate) {
-        Coupon coupon = new Coupon();
-
-        coupon.setName(couponName);
-        coupon.setStartDate(testDate);
-        coupon.setEndDate(testDate);
-        coupon = repository.saveAndFlush(coupon);
-
-        return coupon;
+        helper.assertCouponListDateValues(coupons, now, endDate);
     }
 
     private void createCouponList(LocalDate startDate, LocalDate endDate) {
         List<Coupon> coupons = new ArrayList<>();
-        Coupon c1 = new Coupon();
-
-        c1.setStartDate(startDate);
-        c1.setEndDate(endDate);
-        c1.setName("c1");
-
-        Coupon c2 = new Coupon();
-        c2.setStartDate(startDate);
-        c2.setEndDate(endDate);
-        c2.setName("c2");
-
-        Coupon c3 = new Coupon();
-        c3.setEndDate(endDate);
-        c3.setStartDate(startDate);
-        c3.setName("c3");
+        Coupon c1 = helper.createCouponWithDateValues("c1", startDate, endDate);
+        Coupon c2 = helper.createCouponWithDateValues("c2", startDate, endDate);
+        Coupon c3 = helper.createCouponWithDateValues("c3", startDate, endDate);
 
         coupons.add(c1);
         coupons.add(c2);

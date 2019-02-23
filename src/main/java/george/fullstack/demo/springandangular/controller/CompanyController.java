@@ -10,6 +10,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/companies")
+//todo  remove @CrossOrigin when build for prod angular -  into the /dist folder
+//todo add authentication in version 3
+@CrossOrigin(origins = "http://localhost:4200")
 public class CompanyController {
 
     private CompanyService service;

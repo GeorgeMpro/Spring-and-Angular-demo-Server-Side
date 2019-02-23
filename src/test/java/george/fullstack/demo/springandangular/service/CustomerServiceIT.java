@@ -4,6 +4,7 @@ import edu.emory.mathcs.backport.java.util.Collections;
 import george.fullstack.demo.springandangular.SpringAndAngularApplication;
 import george.fullstack.demo.springandangular.dao.CustomerRepository;
 import george.fullstack.demo.springandangular.entity.Customer;
+import george.fullstack.demo.springandangular.testhelper.CustomerTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +28,8 @@ class CustomerServiceIT {
     private String testMail2 = "dan@mail.com";
     private List<Customer> testCustomers;
 
+    private CustomerTestHelper helper;
+
     @Autowired
     private CustomerService service;
 
@@ -36,6 +39,7 @@ class CustomerServiceIT {
 
     @BeforeEach
     void setUp() {
+        helper = new CustomerTestHelper();
         repository.deleteAllInBatch();
         testCustomers = repository.saveAll(createListOfTestCustomers());
     }
@@ -43,19 +47,16 @@ class CustomerServiceIT {
     @Test
     void create() {
         String testName = "testName";
-        Customer c = createTestCustomer(testName, "test1@mail.com");
 
-        service.createCustomer(c);
+        Customer expected = service.createCustomer(helper.createSimpleCustomer(testName, "test1@mail.com"));
 
-        Customer returned = service.findCustomerByName(testName);
-        assertNotNull(returned);
-        assertSameCustomers(c, returned);
+        Customer actual = service.findCustomerByName(testName);
+        helper.assertSameCustomerValues(expected, actual);
     }
 
     @Test
     void whenDuplicateIdCannotCreateCustomer_throwException() {
         Customer duplicateId = service.findCustomerByName(testName1);
-        long id = duplicateId.getId();
         String errorMessage = "Cannot Create. Customer with this id or name already exists.";
 
         Throwable throwable = assertThrows(CustomerServiceImpl.CustomerAlreadyExist.class, () -> service.createCustomer(duplicateId));
@@ -65,7 +66,7 @@ class CustomerServiceIT {
     @Test
     void whenDuplicateNameCannotCreateCustomer_throwException() {
         String errorMessage = "Cannot Create. Customer with this id or name already exists.";
-        Customer duplicateName = createTestCustomer(testName1, "not@duplicate");
+        Customer duplicateName = helper.createSimpleCustomer(testName1, "not@duplicate");
 
         Throwable throwable = assertThrows(CustomerServiceImpl.CustomerAlreadyExist.class, () -> service.createCustomer(duplicateName));
         assertEquals(errorMessage, throwable.getMessage());
@@ -77,12 +78,7 @@ class CustomerServiceIT {
         List<Customer> fromRepo = repository.findAll();
         List<Customer> fromServ = service.findAllCustomers();
 
-        assertAll("customer list",
-                () -> {
-                    for (int i = 0; i < fromRepo.size(); i++) {
-                        assertSameCustomers(fromRepo.get(i), fromServ.get(i));
-                    }
-                });
+        helper.assertSameCustomerListValues(fromRepo, fromServ);
     }
 
     @Test
@@ -90,7 +86,7 @@ class CustomerServiceIT {
         Customer fromRepo = repository.findByName(testName1).get();
         Customer fromService = service.findCustomerByName(testName1);
 
-        assertSameCustomers(fromRepo, fromService);
+        helper.assertSameCustomerValues(fromRepo, fromService);
     }
 
     @Test
@@ -104,12 +100,12 @@ class CustomerServiceIT {
 
     @Test
     void findById() {
-        Customer customer = createTestCustomer("find", "find@mail.com");
-        service.createCustomer(customer);
-        Customer saved = service.findCustomerByName(customer.getName());
+        Customer customer = service.createCustomer(helper.createSimpleCustomer("find", "find@mail.com"));
 
-        Customer returned = service.findById(saved.getId());
-        assertSameCustomers(saved, returned);
+        Customer expected = service.findCustomerByName(customer.getName());
+        Customer actual = service.findById(expected.getId());
+
+        helper.assertSameCustomerValues(expected, actual);
     }
 
     @ParameterizedTest
@@ -151,22 +147,21 @@ class CustomerServiceIT {
 
     @Test
     void updateCustomer() {
-        Customer updated = service.findCustomerByName(testName1);
-        updated.setName("updated");
-        updated.setEmail("updated@mail.com");
+        Customer updated = helper.updateCustomerByName(service, testName1);
 
         service.updateCustomer(updated);
 
         Customer returned = service.findCustomerByName(updated.getName());
         assertNotNull(returned);
-        assertSameCustomers(updated, returned);
+        helper.assertSameCustomerValues(updated, returned);
     }
+
 
     @Test
     void whenCannotUpdate_thenThrowsException() {
-        Customer badUpdate = new Customer("cannot", "update@mail.com", new ArrayList<>());
-        String errorMessage = "Cannot update. Cannot find customer with id value " + badUpdate.getId();
+        Customer badUpdate = helper.createSimpleCustomer("cannot", "update@mail.com");
 
+        String errorMessage = "Cannot update. Cannot find customer with id value " + badUpdate.getId();
         Throwable throwable = assertThrows(CustomerServiceImpl.NoSuchCustomer.class, () -> service.updateCustomer(badUpdate));
         assertEquals(errorMessage, throwable.getMessage());
     }
@@ -188,23 +183,11 @@ class CustomerServiceIT {
     private List<Customer> createListOfTestCustomers() {
         List<Customer> tempList = new ArrayList<>();
 
-        tempList.add(createTestCustomer(testName1, testMail1));
-        tempList.add(createTestCustomer(testName2, testMail2));
-        tempList.add(createTestCustomer("test3", "bill@mail.com"));
+        tempList.add(helper.createSimpleCustomer(testName1, testMail1));
+        tempList.add(helper.createSimpleCustomer(testName2, testMail2));
+        tempList.add(helper.createSimpleCustomer("test3", "test3@mail.com"));
 
         return tempList;
-    }
-
-    private Customer createTestCustomer(String name, String email) {
-        return new Customer(name, email, new ArrayList<>());
-    }
-
-    private void assertSameCustomers(Customer expected, Customer actual) {
-        assertNotNull(expected);
-        assertEquals(expected.getId(), actual.getId());
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getEmail(), actual.getEmail());
-        assertEquals(expected.getId(), actual.getId());
     }
 
     private void checkForDuplicate(Customer duplicate) {

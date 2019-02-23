@@ -3,6 +3,7 @@ package george.fullstack.demo.springandangular.controller;
 import com.google.gson.Gson;
 import george.fullstack.demo.springandangular.entity.Coupon;
 import george.fullstack.demo.springandangular.service.CouponServiceImpl;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,8 @@ public class CouponControllerIT {
     private String jsonTestCoupon;
     private long testId;
 
+    private CouponTestHelper helper;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -61,7 +64,8 @@ public class CouponControllerIT {
 
     @BeforeEach
     void setUp() {
-        testCoupon = createTestCoupon(testName);
+        helper = new CouponTestHelper();
+        testCoupon = helper.createSimpleCoupon(testName);
         jsonTestCoupon = couponToJson(testCoupon);
         testId = testCoupon.getId();
     }
@@ -83,7 +87,6 @@ public class CouponControllerIT {
         requestBuilder = get(getByNamePath, testName);
 
         testPathStatusWithJson(requestBuilder, ok);
-
     }
 
 
@@ -170,10 +173,6 @@ public class CouponControllerIT {
         testPathStatusWithException(requestBuilder, notFound);
     }
 
-    private Coupon createTestCoupon(String name) {
-        return new Coupon(name, testDescription, testUrl, null, null, null, new ArrayList<>());
-    }
-
     //todo note: Test Coupon Date is null because of parsing error with jackson after parsing with gson (expecetd array/string)
 //        test pass with postman. will need to reconfigure
     private String couponToJson(Coupon coupon) {
@@ -183,7 +182,7 @@ public class CouponControllerIT {
 
     private ResultActions testPathStatus(MockHttpServletRequestBuilder requestBuilder, ResultMatcher expectedHttpStatus) throws Exception {
         return mockMvc.perform(requestBuilder
-                .accept(MediaType.APPLICATION_JSON_UTF8))
+                .accept(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andExpect(expectedHttpStatus);
     }
 
@@ -219,6 +218,7 @@ public class CouponControllerIT {
                 .andExpect(jsonPath("$.name", is(testName)))
                 .andExpect(jsonPath("$.description", is(testDescription)))
                 .andExpect(jsonPath("$.imageLocation", is(testUrl)))
+                .andExpect(jsonPath("$.amount", is(1)))
                 .andExpect(jsonPath("$.startDate", nullValue()))
                 .andExpect(jsonPath("$.endDate", nullValue()));
     }

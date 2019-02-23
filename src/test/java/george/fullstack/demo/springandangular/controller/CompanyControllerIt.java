@@ -1,8 +1,8 @@
 package george.fullstack.demo.springandangular.controller;
 
-import com.google.gson.Gson;
 import george.fullstack.demo.springandangular.entity.Company;
 import george.fullstack.demo.springandangular.service.CompanyServiceImpl;
+import george.fullstack.demo.springandangular.testhelper.CompanyTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +38,7 @@ public class CompanyControllerIt {
     private Company testCompany;
     private String jsonTestCompany;
 
+    //    todo extract/delegate all the mvc parts
     private String baseUrlPath = "/companies/";
     private String getByIdPath = baseUrlPath + "{id}/id";
     private String getByNamePath = baseUrlPath + "{name}/name";
@@ -50,6 +51,8 @@ public class CompanyControllerIt {
     private ResultMatcher created = status().isCreated();
     private ResultMatcher noContent = status().isNoContent();
 
+    private CompanyTestHelper helper;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -58,8 +61,9 @@ public class CompanyControllerIt {
 
     @BeforeEach
     void setUp() {
-        testCompany = createTestCompany(testName, "test1@mail");
-        jsonTestCompany = companyToJson(testCompany);
+        helper = new CompanyTestHelper();
+        testCompany = helper.createSimpleCompany(testName, "test1@mail");
+        jsonTestCompany = helper.companyToJson(testCompany);
     }
 
     @Test
@@ -216,16 +220,5 @@ public class CompanyControllerIt {
     private ResultActions testResponsePathStatusWithContentException(MockHttpServletRequestBuilder requestBuilder, ResultMatcher expectedHttpStatus) throws Exception {
         return testPathStatusWithContent(requestBuilder, expectedHttpStatus)
                 .andExpect(jsonPath("exception", is(errorMessage)));
-    }
-
-
-    private Company createTestCompany(String name, String email) {
-
-        return new Company(name, email, testPassword, new ArrayList<>());
-    }
-
-    private String companyToJson(Company company) {
-        Gson gson = new Gson();
-        return gson.toJson(company, Company.class);
     }
 }

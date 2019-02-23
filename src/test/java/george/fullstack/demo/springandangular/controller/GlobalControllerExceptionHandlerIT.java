@@ -34,6 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class GlobalControllerExceptionHandlerIT {
 //    todo (?)test controller - company, coupon
+//    todo add format exception
+//    todo add amount exception
 
     private MockMvc mockMvc;
     private final long testId = -1L;

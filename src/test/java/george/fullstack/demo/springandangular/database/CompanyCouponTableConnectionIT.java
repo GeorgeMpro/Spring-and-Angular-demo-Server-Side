@@ -5,14 +5,14 @@ import george.fullstack.demo.springandangular.dao.CompanyRepository;
 import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.entity.Company;
 import george.fullstack.demo.springandangular.entity.Coupon;
+import george.fullstack.demo.springandangular.testhelper.CompanyTestHelper;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,10 +21,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @TestPropertySource(locations = "classpath:application-mysql-test-connection.properties")
 public class CompanyCouponTableConnectionIT {
+    // todo add tests for not returning the JSON object from the connected table - avoid infinite loop
 
-    private final String testName = "testName";
+    private final String testName = "test1";
     private final String testEmail = "test@mail";
     private Company testCompany;
+
+    private CompanyTestHelper companyHelper;
+    private CouponTestHelper couponHelper;
 
     @Autowired
     private CompanyRepository companyRepository;
@@ -35,6 +39,8 @@ public class CompanyCouponTableConnectionIT {
 
     @BeforeEach
     void setUp() {
+        companyHelper = new CompanyTestHelper();
+        couponHelper = new CouponTestHelper();
         companyRepository.deleteAll();
         couponRepository.deleteAll();
         testCompany = returnSetupCompanyFrom();
@@ -77,6 +83,7 @@ public class CompanyCouponTableConnectionIT {
         assertEquals(Collections.emptyList(), couponRepository.findAll());
         assertNotNull(returnedCompanies);
         assertNotEquals(Collections.emptyList(), returnedCompanies);
+
         assertNotNull(company);
         assertEquals(testName, company.getName());
         assertEquals(testEmail, company.getEmail());
@@ -90,12 +97,12 @@ public class CompanyCouponTableConnectionIT {
     }
 
     private Company setUpTestCompany() {
-        Company tempCompany = new Company(testName, testEmail, "1234", null);
+        Company tempCompany = companyHelper.createSimpleCompany(testName, testEmail);
 
-        Coupon coupon = new Coupon("test1", "description1", "location1", LocalDate.now(), LocalDate.now(), null, new ArrayList<>());
-        Coupon coupon2 = new Coupon("test2", "description2", "location2", LocalDate.now(), LocalDate.now(), null, new ArrayList<>());
-        tempCompany.addCoupon(coupon);
-        tempCompany.addCoupon(coupon2);
+        Coupon c1 = couponHelper.createSimpleCoupon("test1");
+        Coupon c2 = couponHelper.createSimpleCoupon("test2");
+        tempCompany.addCoupon(c1);
+        tempCompany.addCoupon(c2);
 
         return tempCompany;
     }

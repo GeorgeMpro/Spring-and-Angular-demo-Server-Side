@@ -1,5 +1,9 @@
 package george.fullstack.demo.springandangular.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.google.gson.annotations.Expose;
+
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,15 +16,19 @@ public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", length = 45)
+    @Expose
     private long id;
 
     @Column(name = "name", unique = true, nullable = false, length = 45)
+    @Expose
     private String name;
 
     @Column(name = "email", unique = true, nullable = false, length = 45)
+    @Expose
     private String email;
 
     @Column(name = "password", nullable = false, length = 45)
+    @Expose
     private String password;
 
     @OneToMany(fetch = FetchType.EAGER,
@@ -28,6 +36,7 @@ public class Company {
             orphanRemoval = true,
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH, CascadeType.REFRESH}
     )
+    @JsonManagedReference
     private List<Coupon> coupons;
 
 

@@ -61,7 +61,7 @@ public class CustomerControllerTest {
         controller.createCustomer(createTestCustomer());
         long id = testCustomer.getId();
 
-//        controller.updateCustomer(id);
+//        controller.updateCustomerByName(id);
 
         Customer returned = controller.getCustomerById(Long.toString(id));
         assertSameCustomerValues(testCustomer, returned);

@@ -4,6 +4,7 @@ package george.fullstack.demo.springandangular.service;
 import george.fullstack.demo.springandangular.SpringAndAngularApplication;
 import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.entity.Coupon;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,12 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest(classes = SpringAndAngularApplication.class)
 @TestPropertySource(locations = "classpath:application-mysql-test-connection.properties")
@@ -26,18 +26,20 @@ public class CouponServiceIT {
 
     private final String testName = "test1";
 
+    private CouponTestHelper helper;
+
     @Autowired
     private CouponRepository repository;
 
     @Autowired
     private CouponService service;
 
-    private List<Coupon> testCoupons;
 
     @BeforeEach
     void setUp() {
+        helper = new CouponTestHelper();
         repository.deleteAllInBatch();
-        testCoupons = repository.saveAll(createTestCouponsList());
+        repository.saveAll(helper.createSimpleCouponList(testName));
     }
 
     @AfterEach
@@ -47,28 +49,24 @@ public class CouponServiceIT {
 
     @Test
     void getAllCoupons() {
-        List<Coupon> fromRepo = repository.findAll();
-        List<Coupon> fromServ = service.findAllCoupons();
+        List<Coupon> expected = repository.findAll();
+        List<Coupon> actual = service.findAllCoupons();
 
-        assertTrue(fromServ.size() > 0);
-        assertAll("Coupon list", () -> {
-            for (int i = 0; i < fromRepo.size(); i++) {
-                assertSameCouponValues(fromRepo.get(i), fromServ.get(i));
-            }
-        });
+        helper.assertSameCouponListValues(expected, actual);
     }
+
 
     @Test
     void createCoupon() {
         String name = "test create";
-        Coupon coupon = createTestCoupon(name);
+        Coupon coupon = helper.createSimpleCoupon(name);
 
-        Coupon created = service.createCoupon(coupon);
+        Coupon actual = service.createCoupon(coupon);
 
         Optional<Coupon> optionalCoupon = repository.findByName(name);
-        Coupon fromRepo = optionalCoupon.get();
+        Coupon expected = optionalCoupon.get();
 
-        assertSameCouponValues(fromRepo, created);
+        helper.assertSameCouponValues(expected, actual);
     }
 
     @Test
@@ -85,12 +83,11 @@ public class CouponServiceIT {
     @Test
     void findCouponById() {
         String name = "testFindById";
-        Coupon coupon = createTestCoupon(name);
 
-        Coupon fromRepo = service.createCoupon(coupon);
-        Coupon fromServ = service.findById(coupon.getId());
+        Coupon expected = service.createCoupon(helper.createSimpleCoupon(name));
+        Coupon actual = service.findByName(name);
 
-        assertSameCouponValues(fromRepo, fromServ);
+        helper.assertSameCouponValues(expected, actual);
     }
 
     @ParameterizedTest
@@ -103,11 +100,11 @@ public class CouponServiceIT {
 
     @Test
     void findCouponByName() {
-        Optional<Coupon> fromRepo = repository.findByName(testName);
+        Optional<Coupon> expected = repository.findByName(testName);
 
-        Coupon fromServ = service.findByName(testName);
+        Coupon actual = service.findByName(testName);
 
-        assertSameCouponValues(fromRepo.get(), fromServ);
+        helper.assertSameCouponValues(expected.get(), actual);
     }
 
     @ParameterizedTest
@@ -121,10 +118,9 @@ public class CouponServiceIT {
 
     @Test
     void deleteACoupon() {
-
         assertThrows(CouponServiceImpl.NoSuchCoupon.class, () -> {
             String name = "toDelete";
-            Coupon coupon = service.createCoupon(createTestCoupon(name));
+            Coupon coupon = service.createCoupon(helper.createSimpleCoupon(name));
             service.deleteCouponById(coupon.getId());
             service.findByName(name);
         });
@@ -142,20 +138,20 @@ public class CouponServiceIT {
 
     @Test
     void updateCoupon() {
-        Coupon updated = service.createCoupon(createTestCoupon("To update"));
-        updated.setName("updated name");
-        service.updateCoupon(updated);
+        Coupon expected = service.createCoupon(helper.createSimpleCoupon("To update"));
+        expected.setName("updated name");
+        service.updateCoupon(expected);
 
-        Coupon returned = service.findById(updated.getId());
+        Coupon actual = service.findById(expected.getId());
 
-        assertSameCouponValues(updated, returned);
+        helper.assertSameCouponValues(expected, actual);
     }
 
     @Test
     void whenInvalidUpdateName_thenThrowException() {
         String errorMessage = "Cannot update. Coupon with name value " + testName + " already exists.";
         Throwable throwable = assertThrows(CouponServiceImpl.CouponAlreadyExist.class, () -> {
-            Coupon duplicate = service.createCoupon(createTestCoupon("duplicate1"));
+            Coupon duplicate = service.createCoupon(helper.createSimpleCoupon("duplicate1"));
             duplicate.setName(testName);
             service.updateCoupon(duplicate);
         });
@@ -173,33 +169,6 @@ public class CouponServiceIT {
         Throwable throwable = assertThrows(CouponServiceImpl.NoSuchCoupon.class, () -> service.updateCoupon(coupon));
 
         assertEquals(errorMessage, throwable.getMessage());
-    }
-
-    private List<Coupon> createTestCouponsList() {
-        List<Coupon> coupons = new ArrayList<>();
-        Coupon c1 = createTestCoupon(testName);
-        Coupon c2 = createTestCoupon("test2");
-
-        coupons.add(c1);
-        coupons.add(c2);
-
-        return coupons;
-    }
-
-    private Coupon createTestCoupon(String name) {
-        return new Coupon(name, "Test coupon", "url", LocalDate.now(), LocalDate.now(), null, new ArrayList<>());
-    }
-
-    private void assertSameCouponValues(Coupon expected, Coupon actual) {
-        assertNotNull(expected);
-        assertTrue(expected.getId() > 0);
-        assertEquals(expected.getId(), actual.getId());
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getDescription(), actual.getDescription());
-        assertEquals(expected.getImageLocation(), actual.getImageLocation());
-        assertEquals(expected.getStartDate(), actual.getStartDate());
-        assertEquals(expected.getEndDate(), actual.getEndDate());
-        assertEquals(expected.getCompany(), actual.getCompany());
     }
 
 

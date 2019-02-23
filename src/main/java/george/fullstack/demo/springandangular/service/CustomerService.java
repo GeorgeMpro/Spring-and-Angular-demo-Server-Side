@@ -23,5 +23,4 @@ public interface CustomerService {
 
     void deleteAllCustomers();
 
-
 }

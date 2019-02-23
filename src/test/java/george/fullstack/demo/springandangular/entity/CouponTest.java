@@ -1,6 +1,7 @@
 package george.fullstack.demo.springandangular.entity;
 
 import edu.emory.mathcs.backport.java.util.Collections;
+import george.fullstack.demo.springandangular.testhelper.CustomerTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,10 +19,14 @@ public class CouponTest {
     private String description = "test1";
     private String location = "test_location";
     private String email = "test1@mail";
-    private Customer testCustomer = new Customer(testName, email, new ArrayList<>());
+    private Customer testCustomer;
+
+    private CustomerTestHelper customerHelper;
 
     @BeforeEach
     void setUp() {
+        customerHelper = new CustomerTestHelper();
+        testCustomer = customerHelper.createSimpleCustomer(testName, email);
         testCoupon = createTestCoupon();
     }
 
@@ -49,8 +54,8 @@ public class CouponTest {
     }
 
     private Coupon createTestCoupon() {
-        Coupon coupon = new Coupon(testName, description, location, LocalDate.now(), LocalDate.now(), new Company(), new ArrayList<>());
-        Customer testCustomer2 = new Customer("test2", "test2@mail.com", new ArrayList<>());
+        Coupon coupon = new Coupon(testName, description, location, 1, LocalDate.now(), LocalDate.now(), new Company(), new ArrayList<>());
+        Customer testCustomer2 = customerHelper.createSimpleCustomer("test2", "test2@mail.com");
         coupon.addCustomer(testCustomer);
         coupon.addCustomer(testCustomer2);
         return coupon;

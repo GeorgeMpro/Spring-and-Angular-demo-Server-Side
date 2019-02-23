@@ -6,13 +6,14 @@ import george.fullstack.demo.springandangular.dao.CouponRepository;
 import george.fullstack.demo.springandangular.dao.CustomerRepository;
 import george.fullstack.demo.springandangular.entity.Coupon;
 import george.fullstack.demo.springandangular.entity.Customer;
+import george.fullstack.demo.springandangular.testhelper.CouponTestHelper;
+import george.fullstack.demo.springandangular.testhelper.CustomerTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,11 +23,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(locations = "classpath:application-mysql-test-connection.properties")
 public class CustomerCouponTableConnectionIT {
 
-    private String customerName = "customer1";
-    private String customerEmail = "test1@mail.com";
+    private String name = "test1";
+    private String email = "test1@mail.com";
     private Customer testCustomer;
     private String couponName = "couponTest1";
 
+    private CustomerTestHelper customerHelper;
+
+    private CouponTestHelper couponHelper;
 
     @Autowired
     private CustomerRepository customerRepo;
@@ -36,6 +40,8 @@ public class CustomerCouponTableConnectionIT {
 
     @BeforeEach
     void setUp() {
+        customerHelper = new CustomerTestHelper();
+        couponHelper = new CouponTestHelper();
         couponRepo.deleteAllInBatch();
         customerRepo.deleteAllInBatch();
         testCustomer = returnSavedTestCustomer();
@@ -44,11 +50,11 @@ public class CustomerCouponTableConnectionIT {
     @Test
     void joinTableMapping() {
         List<Coupon> coupons = testCustomer.getCoupons();
-        Coupon fromCustomer = coupons.get(0);
+        Coupon actual = coupons.get(0);
 
-        Coupon fromRepo = couponRepo.findByName(couponName).get();
+        Coupon expected = couponRepo.findByName(couponName).get();
 
-        assertSameCouponValues(fromRepo, fromCustomer);
+        couponHelper.assertSameCouponValues(expected, actual);
     }
 
     @Test
@@ -56,7 +62,7 @@ public class CustomerCouponTableConnectionIT {
         List<Coupon> beforeDelete = testCustomer.getCoupons();
         couponRepo.deleteAllInBatch();
 
-        Customer after = customerRepo.findByName(customerName).get();
+        Customer after = customerRepo.findByName(name).get();
         List<Coupon> afterDelete = after.getCoupons();
 
         assertNotEquals(Collections.emptyList(), beforeDelete);
@@ -69,37 +75,31 @@ public class CustomerCouponTableConnectionIT {
         List<Customer> before = testCoupon.getCustomers();
         customerRepo.deleteAllInBatch();
 
-        Coupon returnedCoupon = couponRepo.findByName(couponName).get();
+        Coupon actual = couponRepo.findByName(couponName).get();
 
-        List<Customer> after = returnedCoupon.getCustomers();
+        List<Customer> after = actual.getCustomers();
 
         assertNotNull(before);
         assertNotEquals(Collections.emptyList(), before);
 
-        assertEquals(couponName, returnedCoupon.getName());
+        assertEquals(couponName, actual.getName());
         assertEquals(Collections.emptyList(), customerRepo.findAll());
         assertEquals(Collections.emptyList(), after);
     }
 
     private Customer returnSavedTestCustomer() {
-        Customer customer = createTestCustomer(customerName, customerEmail);
+        Customer customer = customerHelper.createSimpleCustomer(name, email);
+
+        addCouponsToCustomer(customer);
+
         return customerRepo.saveAndFlush(customer);
-    }
-
-    private Customer createTestCustomer(String name, String email) {
-        Customer testCustomer = new Customer(name, email, null);
-
-        testCustomer = addCouponsToCustomer(testCustomer);
-
-        return testCustomer;
     }
 
     private Customer addCouponsToCustomer(Customer customer) {
 
-        Coupon coupon1 = new Coupon();
-        Coupon coupon2 = new Coupon();
-        coupon1.setName(couponName);
-        coupon2.setName("couponTest2");
+        Coupon coupon1 = couponHelper.createSimpleCoupon(couponName);
+        Coupon coupon2 = couponHelper.createSimpleCoupon("couponTest2");
+
         customer.addCoupon(coupon1);
         customer.addCoupon(coupon2);
 
@@ -107,35 +107,18 @@ public class CustomerCouponTableConnectionIT {
     }
 
     private Coupon returnSavedSetupCoupon() {
-        Coupon coupon = createTestCoupon("test1");
+        Coupon coupon = couponHelper.createSimpleCoupon(name);
+
+        addCustomerToCoupon(coupon);
+
         return couponRepo.saveAndFlush(coupon);
     }
 
-    private Coupon createTestCoupon(String name) {
-        Coupon coupon = new Coupon();
-        coupon.setName(name);
-
-        coupon = addCustomerToCoupon(coupon);
-
-        return coupon;
-    }
-
     private Coupon addCustomerToCoupon(Coupon coupon) {
-        Customer customer = new Customer("name", "email@mail", new ArrayList<>());
+        Customer customer = customerHelper.createSimpleCustomer("name", "email@mail");
+
         coupon.addCustomer(customer);
 
         return coupon;
-    }
-
-    private void assertSameCouponValues(Coupon expected, Coupon actual) {
-        assertNotNull(expected);
-        assertTrue(expected.getId() > 0);
-        assertEquals(expected.getId(), actual.getId());
-        assertEquals(expected.getName(), actual.getName());
-        assertEquals(expected.getDescription(), actual.getDescription());
-        assertEquals(expected.getImageLocation(), actual.getImageLocation());
-        assertEquals(expected.getStartDate(), actual.getStartDate());
-        assertEquals(expected.getEndDate(), actual.getEndDate());
-        assertEquals(expected.getCompany(), actual.getCompany());
     }
 }
